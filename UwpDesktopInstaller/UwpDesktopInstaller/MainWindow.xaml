@@ -1,0 +1,44 @@
+﻿<Window x:Class="UwpDesktopInstaller.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:UwpDesktopInstaller"
+        mc:Ignorable="d"
+        Background="#eee"
+        WindowStartupLocation="CenterScreen"
+        Title="联合利华Mobile-Chief安装器" Height="350" Width="525">
+    <Grid>
+        <StackPanel MinWidth="300" HorizontalAlignment="Center" VerticalAlignment="Center">
+            <StackPanel.Resources>
+                <Style TargetType="TextBlock">
+                    <Setter Property="FontSize" Value="16"></Setter>
+                </Style>
+                <Style TargetType="StackPanel">
+                    <Setter Property="Margin" Value="0,5,0,5"/>
+                </Style>
+            </StackPanel.Resources>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock >当前版本:</TextBlock>
+                <TextBlock Margin="10,0,0,0" x:Name="VersionBlock" Text="...." />
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="0,0,0,0" >安装日期:</TextBlock>
+                <TextBlock Margin="10,0,0,0" x:Name="InstalledDate" Text="...."/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Margin="0,0,0,0" >最新版本:</TextBlock>
+                <TextBlock Margin="10,0,0,0" x:Name="NewVersionBlock" Text="...."/>
+            </StackPanel>
+
+            <Button x:Name="CheckNewVersion" Margin="0,20,0,0" Content="检查新版本" IsEnabled="False" Height="40" Click="button_Click"/>
+            <Button x:Name="InstallButton" Margin="0,20,0,0" Content="安装新版本" IsEnabled="False" Height="40" Click="Button_Click_1"/>
+            <Button x:Name="UninstallButon" Margin="0,20,0,0" Content="卸载当前版本" IsEnabled="False" Height="40" Click="Button_Click_2"/>
+        </StackPanel>
+
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+            <Button Content="+导入富媒体" />
+            <Button Content="导出日志" Margin="0,10,0,0"/>
+        </StackPanel>
+    </Grid>
+</Window>
