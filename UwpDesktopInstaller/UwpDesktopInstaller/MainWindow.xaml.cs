@@ -6,6 +6,7 @@ using System.Linq;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
 using System.Net;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -189,5 +190,32 @@ namespace UwpDesktopInstaller
         {
             System.Diagnostics.Process.Start("mobilechef://");
         }
+
+        private void button_Click_4(object sender, RoutedEventArgs e)
+        {
+            ExecuteScript(ps =>
+            {
+                var result = ps.AddCommand("Get-ExecutionPolicy").Invoke();
+                var policy = result.FirstOrDefault().ToString();
+                ps.Commands.Clear();
+                if ("Restricted".Equals(policy))
+                {
+                    result = ps.AddCommand("set-executionpolicy").AddParameter("ExecutionPolicy", "RemoteSigned").Invoke();
+                    ps.Commands.Clear();
+                }
+
+                X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+                store.Open(OpenFlags.MaxAllowed);
+                X509Certificate2 certificate1 = new X509Certificate2(@"C:\Users\Yardley\Documents\Visual Studio 2015\Projects\App11\App11\AppPackages\App11_1.0.0.0_x86_Debug_Test\App11_1.0.0.0_x86_Debug.cer");
+                store.Add(certificate1);
+                store.Close();
+
+                result = ps.AddCommand("add-appxpackage").AddParameter("Path", @"C:\Users\Yardley\Documents\Visual Studio 2015\Projects\App11\App11\AppPackages\App11_1.0.0.0_x86_Debug_Test\App11_1.0.0.0_x86_Debug.appx").AddParameter("ForceApplicationShutdown").Invoke();
+            });
+        }
     }
 }
+//X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+//store.Open(OpenFlags.MaxAllowed); 
+//X509Certificate2 certificate1 = new X509Certificate2("INGS.cer"); store.Add(certificate1); 
+//store.Close();
