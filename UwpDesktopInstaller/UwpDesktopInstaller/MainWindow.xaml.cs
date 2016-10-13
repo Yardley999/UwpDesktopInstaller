@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -48,7 +49,7 @@ namespace UwpDesktopInstaller
 
         private void CheckLocalVersion()
         {
-            ExecuteScript(ps =>
+            RunPsScript(ps =>
             {
                 var result = ps.AddCommand("Get-AppxPackage").AddParameter("Name", AppId).Invoke();
                 if (result.Count > 0)
@@ -95,7 +96,7 @@ namespace UwpDesktopInstaller
         {
             this.NewVersionBlock.Text = "....";
             await Task.Delay(100);
-            ExecuteScript(ps =>
+            RunPsScript(ps =>
             {
                 var result = ps.AddCommand("Invoke-WebRequest").AddParameter("Uri", "ftp://hu.youstandby.me/appVersion.json").Invoke();
                 if (result.Count > 0)
@@ -168,13 +169,92 @@ namespace UwpDesktopInstaller
         /// <param name="e"></param>
         private void Button_Click_2(object sender, RoutedEventArgs e)
         {
-            ExecuteScript(ps =>
+            RunPsScript(ps =>
             {
                 var result = ps.AddCommand("Remove-AppxPackage").AddParameter("Package", AppFullName).Invoke();
             });
         }
 
-        private void ExecuteScript(Action<PowerShell> psAction)
+        /// <summary>
+        /// 启动Uwp
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button_Click_3(object sender, RoutedEventArgs e)
+        {
+            System.Diagnostics.Process.Start("mobilechef://");
+        }
+
+        /// <summary>
+        /// 测试安装
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void button_Click_4(object sender, RoutedEventArgs e)
+        {
+            RunSpaceScript(sp =>
+            {
+                var result = ExeCommand(sp, "add-appxpackage", "Path", @"C:\Users\Winchannel10\Documents\Visual Studio 2015\Projects\App12\App12\AppPackages\App12_1.0.0.0_Debug_Test\App12_1.0.0.0_x86_Debug.appxbundle");
+            });
+
+            RunPipeScript(pl =>
+            {
+                var cmd = new Command("add-appxpackage");
+                cmd.Parameters.Add("Path", @"C:\Users\Winchannel10\Documents\Visual Studio 2015\Projects\App12\App12\AppPackages\App12_1.0.0.0_Debug_Test\App12_1.0.0.0_x86_Debug.appxbundle");
+                pl.Commands.Add(cmd);
+                pl.Invoke();
+            });
+
+            RunPsScript(ps =>
+            {
+                try
+                {
+
+                    var result = ps.AddCommand("Get-ExecutionPolicy").Invoke();
+                    var policy = result.FirstOrDefault().ToString();
+                    ps.Commands.Clear();
+                    if ("Restricted".Equals(policy))
+                    {
+                        result = ps.AddCommand("set-executionpolicy").AddParameter("ExecutionPolicy", "RemoteSigned").Invoke();
+                        ps.Commands.Clear();
+                    }
+
+                    X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+                    store.Open(OpenFlags.MaxAllowed);
+                    X509Certificate2 certificate1 = new X509Certificate2(@"C:\Users\Winchannel10\Documents\Visual Studio 2015\Projects\App12\App12\AppPackages\App12_1.0.0.0_Debug_Test\App12_1.0.0.0_x86_Debug.cer");
+                    store.Add(certificate1);
+                    store.Close();
+
+                    result = ps.AddCommand("add-appxpackage").AddParameter("Path", @"C:\Users\Winchannel10\Documents\Visual Studio 2015\Projects\App12\App12\AppPackages\App12_1.0.0.0_Debug_Test\App12_1.0.0.0_x86_Debug.appxbundle").AddParameter("ForceApplicationShutdown").Invoke();
+                    ps.Commands.Clear();
+
+                    result = ps.AddCommand("get-appxpackage").AddParameter("Name", "acde0ea3-f00f-4b4f-80e6-9fa7c5a152da").Invoke();
+                    if (result.Count > 0)
+                    {
+                        MessageBox.Show("安装成功!");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine(ex.Message);
+                }
+            });
+        }
+
+        #region Helper
+
+        private FileInfo[] FindFiles(string path, string suffix)
+        {
+            DirectoryInfo dInfo = new DirectoryInfo(path);
+            if (dInfo.Exists)
+            {
+                return dInfo.GetFiles("*." + suffix);
+            }
+
+            return null;
+        }
+
+        private void RunPsScript(Action<PowerShell> psAction)
         {
             using (Runspace runspace = RunspaceFactory.CreateRunspace())
             {
@@ -182,37 +262,58 @@ namespace UwpDesktopInstaller
                 PowerShell ps = PowerShell.Create();
                 ps.Runspace = runspace;
 
+
                 psAction?.Invoke(ps);
+            }
+
+        }
+
+        private void RunPipeScript(Action<Pipeline> psAction)
+        {
+            using (Runspace runspace = RunspaceFactory.CreateRunspace())
+            {
+                runspace.Open();
+
+                Pipeline pipe = runspace.CreatePipeline();
+
+                psAction?.Invoke(pipe);
             }
         }
 
-        private void button_Click_3(object sender, RoutedEventArgs e)
+        private void RunSpaceScript(Action<Runspace> spAcvtion)
         {
-            System.Diagnostics.Process.Start("mobilechef://");
-        }
-
-        private void button_Click_4(object sender, RoutedEventArgs e)
-        {
-            ExecuteScript(ps =>
+            using (Runspace runspace = RunspaceFactory.CreateRunspace())
             {
-                var result = ps.AddCommand("Get-ExecutionPolicy").Invoke();
-                var policy = result.FirstOrDefault().ToString();
-                ps.Commands.Clear();
-                if ("Restricted".Equals(policy))
-                {
-                    result = ps.AddCommand("set-executionpolicy").AddParameter("ExecutionPolicy", "RemoteSigned").Invoke();
-                    ps.Commands.Clear();
-                }
+                runspace.Open();
 
-                X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
-                store.Open(OpenFlags.MaxAllowed);
-                X509Certificate2 certificate1 = new X509Certificate2(@"C:\Users\Yardley\Documents\Visual Studio 2015\Projects\App11\App11\AppPackages\App11_1.0.0.0_x86_Debug_Test\App11_1.0.0.0_x86_Debug.cer");
-                store.Add(certificate1);
-                store.Close();
-
-                result = ps.AddCommand("add-appxpackage").AddParameter("Path", @"C:\Users\Yardley\Documents\Visual Studio 2015\Projects\App11\App11\AppPackages\App11_1.0.0.0_x86_Debug_Test\App11_1.0.0.0_x86_Debug.appx").AddParameter("ForceApplicationShutdown").Invoke();
-            });
+                spAcvtion?.Invoke(runspace);
+            }
         }
+
+        private Tuple<Collection<PSObject>, Collection<object>> ExeCommand(Runspace space, string cmd, string p1 = null, string v1 = null, string p2 = null, string v2 = null)
+        {
+            Pipeline line = space.CreatePipeline();
+            Command command = new Command(cmd);
+            if (p1 != null)
+            {
+                command.Parameters.Add(p1, v1);
+            }
+            if (p2 != null)
+            {
+                command.Parameters.Add(p2, v2);
+            }
+            line.Commands.Add(command);
+            var result = line.Invoke();
+            Collection<object> error = null;
+            if (line.Error.Count > 0)
+            {
+                error = line.Error.ReadToEnd();
+            }
+
+            return new Tuple<Collection<PSObject>, Collection<object>>(result, error);
+        }
+
+        #endregion
     }
 }
 //X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);

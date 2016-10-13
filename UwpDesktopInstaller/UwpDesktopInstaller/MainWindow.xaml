@@ -37,8 +37,8 @@
         </StackPanel>
 
         <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
-            <Button Content="+导入富媒体" />
-            <Button Content="导出日志" Margin="0,10,0,0"/>
+            <Button Height="25" Background="White" Content="导入富媒体" />
+            <Button Height="25" Background="White" Content="导出日志" Margin="0,10,0,0"/>
         </StackPanel>
         <Button x:Name="button" Content="Button" HorizontalAlignment="Left" Margin="442,239,0,0" VerticalAlignment="Top" Width="75" Click="button_Click_4"/>
     </Grid>
