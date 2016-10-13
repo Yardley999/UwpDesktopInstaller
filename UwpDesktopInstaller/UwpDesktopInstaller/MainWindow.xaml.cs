@@ -23,6 +23,7 @@ using System.Xml.Linq;
 
 namespace UwpDesktopInstaller
 {
+
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
@@ -33,6 +34,8 @@ namespace UwpDesktopInstaller
         private string AppFullName = string.Empty;
         private string AppLocation = string.Empty;
         private string NewAppUrl = string.Empty;
+
+        string exePath = AppDomain.CurrentDomain.BaseDirectory;
 
         public MainWindow()
         {
@@ -130,7 +133,6 @@ namespace UwpDesktopInstaller
         /// <param name="e"></param>
         private void Button_Click_1(object sender, RoutedEventArgs e)
         {
-            var exePath = AppDomain.CurrentDomain.BaseDirectory;
 
             WebClient client = new WebClient();
             client.DownloadProgressChanged += (obj, arg) =>
@@ -192,6 +194,26 @@ namespace UwpDesktopInstaller
         /// <param name="e"></param>
         private void button_Click_4(object sender, RoutedEventArgs e)
         {
+            RunPsScript(ps =>
+            {
+                var result = ps.AddScript("$PSVersionTable").Invoke();
+                if (result.Count > 0)
+                {
+                    Version anniversaryVersion = new Version(10, 0, 14393);
+                    var osVersion = (result.First().BaseObject as System.Collections.Hashtable)["BuildVersion"] as System.Version;
+                    if (osVersion < anniversaryVersion)
+                    {
+                        //旧版本不支持appx安装，需要执行ps脚本&打开开发者模式
+
+                    }
+                    else
+                    {
+
+                    }
+                }
+            });
+
+
             RunSpaceScript(sp =>
             {
                 var result = ExeCommand(sp, "add-appxpackage", "Path", @"C:\Users\Winchannel10\Documents\Visual Studio 2015\Projects\App12\App12\AppPackages\App12_1.0.0.0_Debug_Test\App12_1.0.0.0_x86_Debug.appxbundle");
@@ -209,7 +231,6 @@ namespace UwpDesktopInstaller
             {
                 try
                 {
-
                     var result = ps.AddCommand("Get-ExecutionPolicy").Invoke();
                     var policy = result.FirstOrDefault().ToString();
                     ps.Commands.Clear();
@@ -314,6 +335,41 @@ namespace UwpDesktopInstaller
         }
 
         #endregion
+
+        private void ImportCer_Click(object sender, RoutedEventArgs e)
+        {
+            X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+            store.Open(OpenFlags.MaxAllowed);
+            X509Certificate2 certificate1 = new X509Certificate2(System.IO.Path.Combine(exePath, "Winchannel.cer"));
+            store.Add(certificate1);
+            store.Close();
+            MessageBox.Show("已导入根证书");
+        }
+
+        private void OfflineInstall_Click(object sender, RoutedEventArgs e)
+        {
+            DirectoryInfo dInfo = new DirectoryInfo(exePath);
+            var files = dInfo.GetFiles("*.AppxBundle");
+            if (files.Length == 0)
+            {
+                files = dInfo.GetFiles("*.Appx");
+            }
+            if (files.Length > 0)
+            {
+                using (Runspace runspace = RunspaceFactory.CreateRunspace())
+                {
+                    runspace.Open();
+                    PowerShell ps = PowerShell.Create();
+                    ps.Runspace = runspace;
+                    var result = ps.AddCommand("add-appxpackage").AddParameter("Path", files.First().FullName).AddParameter("ForceApplicationShutdown").Invoke();
+                    MessageBox.Show("已安装!");
+                }
+            }
+            else
+            {
+                MessageBox.Show("找不到本地安装包");
+            }
+        }
     }
 }
 //X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
