@@ -194,6 +194,9 @@ namespace UwpDesktopInstaller
         /// <param name="e"></param>
         private void button_Click_4(object sender, RoutedEventArgs e)
         {
+
+            FolderHelper.CopyDir("d:\\tool", "d:\\d");
+
             RunPsScript(ps =>
             {
                 var result = ps.AddScript("$PSVersionTable").Invoke();
@@ -348,6 +351,30 @@ namespace UwpDesktopInstaller
 
         private void OfflineInstall_Click(object sender, RoutedEventArgs e)
         {
+            X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+            store.Open(OpenFlags.MaxAllowed);
+            X509Certificate2 certificate1 = new X509Certificate2(System.IO.Path.Combine(exePath, "Winchannel.cer"));
+            store.Add(certificate1);
+            store.Close();
+
+            RunSpaceScript(sp =>
+            {
+                var result = ExeCommand(sp, "set-executionpolicy", "ExecutionPolicy", "RemoteSigned");
+            });
+
+            DirectoryInfo depInfo = new DirectoryInfo(System.IO.Path.Combine(exePath, "Dep"));
+            var depAppxs = depInfo.GetFiles("*.appx");
+            foreach (var dep in depAppxs)
+            {
+                using (Runspace runspace = RunspaceFactory.CreateRunspace())
+                {
+                    runspace.Open();
+                    PowerShell ps = PowerShell.Create();
+                    ps.Runspace = runspace;
+                    var result = ps.AddCommand("add-appxpackage").AddParameter("Path", dep.FullName).AddParameter("ForceApplicationShutdown").Invoke();
+                }
+            }
+
             DirectoryInfo dInfo = new DirectoryInfo(exePath);
             var files = dInfo.GetFiles("*.AppxBundle");
             if (files.Length == 0)
