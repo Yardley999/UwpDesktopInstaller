@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management.Automation;
@@ -49,7 +50,7 @@ namespace UwpDesktopInstaller
             //await Task.Delay(100);
             CheckLocalVersion();
             //button_Click(null, null);
-            FileInfo info = new FileInfo(exePath + "富媒体.zip");
+            DirectoryInfo info = new DirectoryInfo(exePath + "富媒体");
             if (!info.Exists)
             {
                 this.AddRichMedia.IsChecked = false;
@@ -504,24 +505,52 @@ namespace UwpDesktopInstaller
                            {
                                //导入富媒体
                                string appdatafolder = GetAppPakcageFolder();
+                               //await Task.Run(() =>
+                               //{
+                               //    ZipHelper.UnZip("富媒体.zip", appdatafolder, (file) =>
+                               //    {
+                               //        Dispatcher.Invoke(() =>
+                               //        {
+                               //            this.LogBlock.Text = "解压" + file ?? "";
+                               //        });
+                               //    });
+                               //});
+
+                               //await Task.Run(() =>
+                               //{
+                               //    FolderHelper.CopyDir(System.IO.Path.Combine(exePath, "富媒体"), appdatafolder, file =>
+                               //     {
+                               //         Dispatcher.Invoke(() =>
+                               //         {
+                               //             LogBlock.Text = "拷贝 " + file;
+                               //         });
+                               //     });
+                               //});
+
                                await Task.Run(() =>
                                {
-                                   ZipHelper.UnZip("富媒体.zip", appdatafolder, (file) =>
+                                   DirectoryInfo rInfo = new DirectoryInfo(exePath + "富媒体");
+                                   foreach (var r in rInfo.GetFiles())
                                    {
                                        Dispatcher.Invoke(() =>
                                        {
-                                           this.LogBlock.Text = "解压" + file ?? "";
+                                           LogBlock.Text = "解压 " + r.FullName;
                                        });
-                                   });
+                                       if (r.Extension.Equals(".zip"))
+                                       {
+                                           DirectoryInfo unZipFolder = new DirectoryInfo(System.IO.Path.Combine(appdatafolder, "RichMedia", r.Name.Replace(".zip", "")));
+                                           if (unZipFolder.Exists)
+                                           {
+                                               unZipFolder.Delete(true);
+                                           }
+                                           System.IO.Compression.ZipFile.ExtractToDirectory(r.FullName, unZipFolder.FullName);
+                                       }
+                                       else if (r.Extension.Equals(".db"))
+                                       {
+                                           System.IO.File.Copy(r.FullName, System.IO.Path.Combine(appdatafolder, r.Name), true);
+                                       }
+                                   }
                                });
-
-                               //FolderHelper.CopyDir(System.IO.Path.Combine(exePath, "富媒体"), folder, file =>
-                               // {
-                               //     Dispatcher.Invoke(() =>
-                               //     {
-                               //         LogBlock.Text = "拷贝 " + file;
-                               //     });
-                               // });
                                Dispatcher.Invoke(() =>
                               {
                                   LogBlock.Text = "富媒体已导入";
