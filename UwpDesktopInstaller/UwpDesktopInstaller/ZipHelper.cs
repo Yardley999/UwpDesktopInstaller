@@ -238,7 +238,7 @@ namespace UwpDesktopInstaller
         /// <param name="zipedFolder">指定解压目标目录</param> 
         /// <param name="password">密码</param> 
         /// <returns>解压结果</returns> 
-        public static bool UnZip(string fileToUnZip, string zipedFolder, string password)
+        public static bool UnZip(string fileToUnZip, string zipedFolder, string password, Action<string> invokeFile = null)
         {
             bool result = true;
             FileStream fs = null;
@@ -262,6 +262,8 @@ namespace UwpDesktopInstaller
                     {
                         fileName = Path.Combine(zipedFolder, ent.Name);
                         fileName = fileName.Replace('/', '\\');//change by Mr.HopeGi 
+
+                        invokeFile?.Invoke(fileName);
 
                         if (fileName.EndsWith("\\"))
                         {
@@ -315,9 +317,9 @@ namespace UwpDesktopInstaller
         /// <param name="fileToUnZip">待解压的文件</param> 
         /// <param name="zipedFolder">指定解压目标目录</param> 
         /// <returns>解压结果</returns> 
-        public static bool UnZip(string fileToUnZip, string zipedFolder)
+        public static bool UnZip(string fileToUnZip, string zipedFolder, Action<string> invokeFile = null)
         {
-            bool result = UnZip(fileToUnZip, zipedFolder, null);
+            bool result = UnZip(fileToUnZip, zipedFolder, null, invokeFile);
             return result;
         }
 

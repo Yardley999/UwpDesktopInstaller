@@ -20,7 +20,7 @@
                 <TextBlock >本地版本:</TextBlock>
                 <TextBlock Margin="10,0,0,0" x:Name="VersionBlock" Text="...." />
             </StackPanel>
-            <TextBlock VerticalAlignment="Bottom" x:Name="LogBlock" Text="..."/>
+            <TextBlock VerticalAlignment="Bottom" x:Name="LogBlock" TextWrapping="Wrap" Text="..."/>
         </Grid>
 
         <StackPanel Visibility="Collapsed" MinWidth="300" HorizontalAlignment="Center" VerticalAlignment="Center">
