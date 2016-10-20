@@ -9,7 +9,7 @@ namespace UwpDesktopInstaller
 {
     public class FolderHelper
     {
-        public static void CopyDir(string fromDir, string toDir, Action<string> invokeFile)
+        public static void CopyDir(string fromDir, string toDir, Action<string> invokeFile = null)
         {
             if (!Directory.Exists(fromDir))
                 return;

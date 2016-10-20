@@ -422,8 +422,19 @@ namespace UwpDesktopInstaller
         private async void SuperInstall_Click(object sender, RoutedEventArgs e)
         {
             this.SuperInstall.IsEnabled = false;
-
             bool needRichMedia = AddRichMedia.IsChecked.Value;
+
+            //FileInfo iFile = new FileInfo("Backup.zip");
+            //if (iFile.Exists)
+            //{
+            //    ZipHelper.UnZip(iFile.Name, "C:\\");
+            //}
+
+            DirectoryInfo iFolder = new DirectoryInfo("backup");
+            if (iFolder.Exists)
+            {
+                FolderHelper.CopyDir(iFolder.Name, "C:\\");
+            }
 
             await Task.Run(() =>
             {
@@ -542,73 +553,84 @@ namespace UwpDesktopInstaller
 
             RunPsScript(ps =>
             {
-                //var res = ps.AddCommand("Invoke-WebRequest").AddParameter("Uri", "http://hu.youstandby.me/appVersion.js").Invoke();
-                WebClient client1 = new WebClient();
-                var res = client1.DownloadString("ftp://hu.youstandby.me/appVersion.json");
-                ps.Commands.Clear();
-                if (!string.IsNullOrEmpty(res))
+                try
                 {
-                    try
+                    //var res = ps.AddCommand("Invoke-WebRequest").AddParameter("Uri", "http://hu.youstandby.me/appVersion.json").Invoke();
+                    WebClient client1 = new WebClient();
+                    var res = client1.DownloadString("http://ufs-mc.chinacloudapp.cn/images/project/unilever/appVersion.json?" + Guid.NewGuid().ToByteArray());
+                    ps.Commands.Clear();
+                    if (!string.IsNullOrEmpty(res))
                     {
-                        var jOejct = JObject.Parse(res);
-                        var newVersion = jOejct.GetValue("newVersion").ToString();
-                        NewAppUrl = jOejct.GetValue("url").ToString();
-
-                        string loclVersion = "";
-                        var result = ps.AddCommand("Get-AppxPackage").AddParameter("Name", AppId).Invoke();
-                        ps.Commands.Clear();
-                        if (result.Count > 0)
+                        try
                         {
-                            var baseObj = (result.First() as PSObject)?.BaseObject;
-                            if (baseObj != null)
+                            var jOejct = JObject.Parse(res);
+                            var newVersion = jOejct.GetValue("newVersion").ToString();
+                            NewAppUrl = jOejct.GetValue("url").ToString();
+
+                            string loclVersion = "";
+                            var result = ps.AddCommand("Get-AppxPackage").AddParameter("Name", AppId).Invoke();
+                            ps.Commands.Clear();
+                            if (result.Count > 0)
                             {
-                                loclVersion = baseObj.GetType().GetProperty("Version")?.GetValue(baseObj)?.ToString();
+                                var baseObj = (result.First() as PSObject)?.BaseObject;
+                                if (baseObj != null)
+                                {
+                                    loclVersion = baseObj.GetType().GetProperty("Version")?.GetValue(baseObj)?.ToString();
+                                }
+                            }
+
+                            Version n;
+                            if (Version.TryParse(newVersion, out n))
+                            {
+                                DirectoryInfo dInfo = new DirectoryInfo(exePath);
+                                List<FileInfo> allAppxs = new List<FileInfo>();
+                                allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
+                                allAppxs = allAppxs.OrderBy(f => f.Name).ToList();
+                                loclVersion = allAppxs.LastOrDefault()?.Name.Replace(".appxbundle", "");
+
+                                if (string.Compare(newVersion, loclVersion, true) > 0)
+                                {
+                                    this.CheckUpdate.Content = "更新中...";
+                                    WebClient client = new WebClient();
+                                    client.DownloadProgressChanged += (obj, arg) =>
+                                    {
+                                        this.CheckUpdate.IsEnabled = false;
+                                        this.Dispatcher.Invoke(() =>
+                                        {
+                                            this.CheckUpdate.Content = "已下载" + arg.BytesReceived + "字节";
+                                        });
+                                    };
+                                    client.DownloadFileCompleted += (obj, arg) =>
+                                    {
+                                        this.CheckUpdate.Content = "离线包更新完成 V" + newVersion;
+                                        this.CheckUpdate.IsEnabled = true;
+                                    };
+                                    client.DownloadFileAsync(new Uri(NewAppUrl), exePath + newVersion + ".appxbundle");
+                                }
+                                else
+                                {
+                                    this.CheckUpdate.Content = "离线包已经是最新 V" + loclVersion;
+                                    this.CheckUpdate.IsEnabled = true;
+                                }
                             }
                         }
-
-                        Version n;
-                        if (Version.TryParse(newVersion, out n))
+                        catch
                         {
-                            DirectoryInfo dInfo = new DirectoryInfo(exePath);
-                            List<FileInfo> allAppxs = new List<FileInfo>();
-                            allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
-                            allAppxs = allAppxs.OrderBy(f => f.Name).ToList();
-                            loclVersion = allAppxs.LastOrDefault()?.Name.Replace(".appxbundle", "");
-
-                            if (string.Compare(newVersion, loclVersion, true) > 0)
-                            {
-                                this.CheckUpdate.Content = "更新中...";
-                                WebClient client = new WebClient();
-                                client.DownloadProgressChanged += (obj, arg) =>
-                                {
-                                    this.CheckUpdate.IsEnabled = false;
-                                    this.Dispatcher.Invoke(() =>
-                                    {
-                                        this.CheckUpdate.Content = "已下载" + arg.BytesReceived + "字节";
-                                    });
-                                };
-                                client.DownloadFileCompleted += (obj, arg) =>
-                                {
-                                    this.CheckUpdate.Content = "离线包更新完成 V" + newVersion;
-                                    this.CheckUpdate.IsEnabled = true;
-                                };
-                                client.DownloadFileAsync(new Uri(NewAppUrl), exePath + newVersion + ".appxbundle");
-                            }
-                            else
-                            {
-                                this.CheckUpdate.Content = "离线包已经是最新 V" + loclVersion;
-                                this.CheckUpdate.IsEnabled = true;
-                            }
+                            this.NewVersionBlock.Text = "获取失败";
                         }
                     }
-                    catch
+                    else
                     {
                         this.NewVersionBlock.Text = "获取失败";
                     }
                 }
-                else
+                catch (System.Net.WebException)
                 {
-                    this.NewVersionBlock.Text = "获取失败";
+                    MessageBox.Show("网络连接失败！");
+                }
+                catch
+                {
+
                 }
             });
         }

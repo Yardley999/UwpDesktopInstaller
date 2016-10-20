@@ -13,7 +13,7 @@
         <Grid HorizontalAlignment="Stretch" Height="200" VerticalAlignment="Bottom">
             <StackPanel Orientation="Vertical">
                 <TextBlock>高级选项：</TextBlock>
-                <CheckBox x:Name="AddRichMedia" Margin="0,15,0,0" IsChecked="False"  Content="自动导入本地富媒体"/>
+                <CheckBox x:Name="AddRichMedia" Margin="0,15,0,0" IsChecked="True"  Content="自动导入本地富媒体"/>
                 <Button x:Name="CheckUpdate" Margin="0,15,0,0" Height="30" Content="检查更新" Click="Update_Click"/>
             </StackPanel>
             <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,30" Orientation="Horizontal">
