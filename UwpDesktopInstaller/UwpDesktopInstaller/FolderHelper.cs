@@ -9,7 +9,7 @@ namespace UwpDesktopInstaller
 {
     public class FolderHelper
     {
-        public static void CopyDir(string fromDir, string toDir)
+        public static void CopyDir(string fromDir, string toDir, Action<string> invokeFile)
         {
             if (!Directory.Exists(fromDir))
                 return;
@@ -24,14 +24,15 @@ namespace UwpDesktopInstaller
             {
                 string fileName = Path.GetFileName(formFileName);
                 string toFileName = Path.Combine(toDir, fileName);
-                File.Copy(formFileName, toFileName);
+                invokeFile?.Invoke(fileName);
+                File.Copy(formFileName, toFileName,true);
             }
             string[] fromDirs = Directory.GetDirectories(fromDir);
             foreach (string fromDirName in fromDirs)
             {
                 string dirName = Path.GetFileName(fromDirName);
                 string toDirName = Path.Combine(toDir, dirName);
-                CopyDir(fromDirName, toDirName);
+                CopyDir(fromDirName, toDirName, invokeFile);
             }
         }
 
@@ -40,7 +41,7 @@ namespace UwpDesktopInstaller
             if (!Directory.Exists(fromDir))
                 return;
 
-            CopyDir(fromDir, toDir);
+            CopyDir(fromDir, toDir, null);
             Directory.Delete(fromDir, true);
         }
     }

@@ -243,3 +243,4 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/UwpDesktopInstaller/UwpDesktopInstaller/富媒体

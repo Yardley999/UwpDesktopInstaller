@@ -29,9 +29,10 @@ namespace UwpDesktopInstaller
     /// </summary>
     public partial class MainWindow : Window
     {
-        readonly string AppId = "2223d805-63e2-4ded-87a7-ee0b94c17a56";
+        readonly string AppId = "F0545211.456363CE32596";//2223d805-63e2-4ded-87a7-ee0b94c17a56
+        readonly string PackageName = "F0545211.456363CE32596_g77a4fvspwzqa";
 
-        private string AppFullName = string.Empty;
+        private string AppFullName = "F0545211.456363CE32596_g77a4fvspwzqa";
         private string AppLocation = string.Empty;
         private string NewAppUrl = string.Empty;
 
@@ -45,9 +46,9 @@ namespace UwpDesktopInstaller
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            await Task.Delay(100);
+            //await Task.Delay(100);
             CheckLocalVersion();
-            button_Click(null, null);
+            //button_Click(null, null);
         }
 
         private void CheckLocalVersion()
@@ -194,9 +195,6 @@ namespace UwpDesktopInstaller
         /// <param name="e"></param>
         private void button_Click_4(object sender, RoutedEventArgs e)
         {
-
-            FolderHelper.CopyDir("d:\\tool", "d:\\d");
-
             RunPsScript(ps =>
             {
                 var result = ps.AddScript("$PSVersionTable").Invoke();
@@ -255,6 +253,7 @@ namespace UwpDesktopInstaller
                     result = ps.AddCommand("get-appxpackage").AddParameter("Name", "acde0ea3-f00f-4b4f-80e6-9fa7c5a152da").Invoke();
                     if (result.Count > 0)
                     {
+
                         MessageBox.Show("安装成功!");
                     }
                 }
@@ -266,6 +265,13 @@ namespace UwpDesktopInstaller
         }
 
         #region Helper
+
+        private string GetAppPakcageFolder()
+        {
+            string pLocal = System.Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+
+            return System.IO.Path.Combine(pLocal, "Packages", PackageName, "LocalState");
+        }
 
         private FileInfo[] FindFiles(string path, string suffix)
         {
@@ -396,6 +402,172 @@ namespace UwpDesktopInstaller
             {
                 MessageBox.Show("找不到本地安装包");
             }
+        }
+
+        private async void SuperInstall_Click(object sender, RoutedEventArgs e)
+        {
+            bool needRichMedia = AddRichMedia.IsChecked.Value;
+
+            await Task.Run(() =>
+            {
+                X509Store store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+                store.Open(OpenFlags.MaxAllowed);
+                X509Certificate2 certificate1 = new X509Certificate2(System.IO.Path.Combine(exePath, "Winchannel.cer"));
+                store.Add(certificate1);
+                store.Close();
+            });
+
+            LogBlock.Text = "证书已导入";
+
+            await Task.Run(() =>
+            {
+                RunSpaceScript(sp =>
+                {
+                    var result = ExeCommand(sp, "set-executionpolicy", "ExecutionPolicy", "RemoteSigned");
+                });
+            });
+
+            LogBlock.Text = "修改Powershell安全策略";
+
+            DirectoryInfo depInfo = new DirectoryInfo(System.IO.Path.Combine(exePath, "Dep"));
+            var depAppxs = depInfo.GetFiles("*.appx");
+            foreach (var dep in depAppxs)
+            {
+                await Task.Run(() =>
+                {
+                    using (Runspace runspace = RunspaceFactory.CreateRunspace())
+                    {
+                        runspace.Open();
+                        PowerShell ps = PowerShell.Create();
+                        ps.Runspace = runspace;
+                        var result = ps.AddCommand("add-appxpackage").AddParameter("Path", dep.FullName).AddParameter("ForceApplicationShutdown").Invoke();
+                    }
+                });
+                LogBlock.Text = "安装 " + dep.FullName;
+            }
+
+            await Task.Run(() =>
+            {
+                DirectoryInfo dInfo = new DirectoryInfo(exePath);
+                List<FileInfo> allAppxs = new List<FileInfo>();
+                allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
+                //allAppxs.AddRange(dInfo.GetFiles("*.Appx"));
+                allAppxs = allAppxs.OrderBy(f => f.Name).ToList();
+                if (allAppxs.Count > 0)
+                {
+                    using (Runspace runspace = RunspaceFactory.CreateRunspace())
+                    {
+                        runspace.Open();
+                        PowerShell ps = PowerShell.Create();
+                        ps.Runspace = runspace;
+                        var result = ps.AddCommand("add-appxpackage").AddParameter("Path", allAppxs.Last().FullName).AddParameter("ForceApplicationShutdown").Invoke();
+                        ps.Commands.Clear();
+
+                        result = ps.AddCommand("get-appxpackage").AddParameter("Name", AppId).Invoke();
+                        if (result.Count > 0)
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                CheckLocalVersion();
+                                LogBlock.Text = "应用安装完成";
+                            });
+
+                            if (needRichMedia)
+                            {
+                                //导入富媒体
+                                string folder = GetAppPakcageFolder();
+                                FolderHelper.CopyDir(System.IO.Path.Combine(exePath, "富媒体"), folder, file =>
+                                 {
+                                     Dispatcher.Invoke(() =>
+                                     {
+                                         LogBlock.Text = "拷贝 " + file;
+                                     });
+                                 });
+                                Dispatcher.Invoke(() =>
+                                {
+                                    LogBlock.Text = "富媒体已导入";
+                                });
+                            }
+                            MessageBox.Show("部署完成!");
+                        }
+                        else
+                        {
+                            MessageBox.Show("未知错误，请联系开发人员");
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("找不到本地安装包");
+                }
+            });
+        }
+
+        private void Update_Click(object sender, RoutedEventArgs e)
+        {
+            RunPsScript(ps =>
+            {
+                var res = ps.AddCommand("Invoke-WebRequest").AddParameter("Uri", "ftp://hu.youstandby.me/appVersion.json").Invoke();
+                if (res.Count > 0)
+                {
+                    try
+                    {
+                        var jOejct = JObject.Parse(res.First().ToString());
+                        var newVersion = jOejct.GetValue("newVersion").ToString();
+                        NewAppUrl = jOejct.GetValue("url").ToString();
+                        ps.Commands.Clear();
+
+                        string loclVersion = "";
+                        var result = ps.AddCommand("Get-AppxPackage").AddParameter("Name", AppId).Invoke();
+                        if (result.Count > 0)
+                        {
+                            var baseObj = (result.First() as PSObject)?.BaseObject;
+                            if (baseObj != null)
+                            {
+                                loclVersion = baseObj.GetType().GetProperty("Version")?.GetValue(baseObj)?.ToString();
+                            }
+                        }
+                        Version n;
+                        if (Version.TryParse(newVersion, out n))
+                        {
+                            DirectoryInfo dInfo = new DirectoryInfo(exePath);
+                            List<FileInfo> allAppxs = new List<FileInfo>();
+                            allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
+                            allAppxs = allAppxs.OrderBy(f => f.Name).ToList();
+                            loclVersion = allAppxs.LastOrDefault()?.Name.Replace(".appxbundle", "");
+
+                            if (string.Compare(newVersion, loclVersion, true) > 0)
+                            {
+
+                                WebClient client = new WebClient();
+                                client.DownloadProgressChanged += (obj, arg) =>
+                                {
+                                    this.CheckUpdate.IsEnabled = false;
+                                    this.CheckUpdate.Content = "已下载" + arg.BytesReceived + "字节";
+                                };
+                                client.DownloadFileCompleted += (obj, arg) =>
+                                {
+                                    this.CheckUpdate.Content = "离线包更新完成 V" + newVersion;
+                                    this.CheckUpdate.IsEnabled = true;
+                                };
+                                client.DownloadFileAsync(new Uri(NewAppUrl), exePath + newVersion + ".appxbundle");
+                            }
+                            else
+                            {
+                                this.CheckUpdate.Content = "离线包已经是最新 V" + loclVersion;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        this.NewVersionBlock.Text = "获取失败";
+                    }
+                }
+                else
+                {
+                    this.NewVersionBlock.Text = "获取失败";
+                }
+            });
         }
     }
 }

@@ -7,9 +7,23 @@
         mc:Ignorable="d"
         Background="#eee"
         WindowStartupLocation="CenterScreen"
-        Title="联合利华Mobile-Chief安装器[桌面版][DEMO]" Height="350" Width="525">
+        Title="联合利华Mobile-Chief桌面安装器[测试版]" Height="600" Width="800">
     <Grid>
-        <StackPanel MinWidth="300" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <Button x:Name="SuperInstall" Click="SuperInstall_Click" Content="安装" Width="300" Height="150" FontSize="50" />
+        <Grid HorizontalAlignment="Stretch" Height="200" VerticalAlignment="Bottom">
+            <StackPanel Orientation="Vertical">
+                <TextBlock>高级选项：</TextBlock>
+                <CheckBox x:Name="AddRichMedia" Margin="0,15,0,0" IsChecked="False"  Content="自动导入本地富媒体"/>
+                <Button x:Name="CheckUpdate" Margin="0,15,0,0" Height="30" Content="检查更新" Click="Update_Click"/>
+            </StackPanel>
+            <StackPanel VerticalAlignment="Bottom" Margin="0,0,0,30" Orientation="Horizontal">
+                <TextBlock >本地版本:</TextBlock>
+                <TextBlock Margin="10,0,0,0" x:Name="VersionBlock" Text="...." />
+            </StackPanel>
+            <TextBlock VerticalAlignment="Bottom" x:Name="LogBlock" Text="..."/>
+        </Grid>
+
+        <StackPanel Visibility="Collapsed" MinWidth="300" HorizontalAlignment="Center" VerticalAlignment="Center">
             <StackPanel.Resources>
                 <Style TargetType="TextBlock">
                     <Setter Property="FontSize" Value="16"></Setter>
@@ -18,10 +32,10 @@
                     <Setter Property="Margin" Value="0,5,0,5"/>
                 </Style>
             </StackPanel.Resources>
-            <StackPanel Orientation="Horizontal">
+            <!--<StackPanel Orientation="Horizontal">
                 <TextBlock >本地版本:</TextBlock>
                 <TextBlock Margin="10,0,0,0" x:Name="VersionBlock" Text="...." />
-            </StackPanel>
+            </StackPanel>-->
             <StackPanel Orientation="Horizontal">
                 <TextBlock Margin="0,0,0,0" >安装日期:</TextBlock>
                 <TextBlock Margin="10,0,0,0" x:Name="InstalledDate" Text="...."/>
@@ -36,7 +50,7 @@
             <Button x:Name="UninstallButon" Margin="0,20,0,0" Content="卸载当前版本" IsEnabled="False" Height="40" Click="Button_Click_2"/>
         </StackPanel>
 
-        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Right">
+        <StackPanel Visibility="Collapsed" VerticalAlignment="Center" HorizontalAlignment="Right">
             <TextBlock>高级功能：</TextBlock>
             <Button x:Name="ImportCer" Content="导入根证书" Click="ImportCer_Click"/>
             <Button x:Name="OfflineInstall" Content="离线安装" Click="OfflineInstall_Click"/>
