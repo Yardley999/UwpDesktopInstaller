@@ -50,12 +50,7 @@ namespace UwpDesktopInstaller
             //await Task.Delay(100);
             CheckLocalVersion();
             //button_Click(null, null);
-            DirectoryInfo info = new DirectoryInfo(exePath + "富媒体");
-            if (!info.Exists)
-            {
-                this.AddRichMedia.IsChecked = false;
-                this.AddRichMedia.IsEnabled = false;
-            }
+
         }
 
         private void CheckLocalVersion()
@@ -105,6 +100,33 @@ namespace UwpDesktopInstaller
                     }
                 });
             });
+
+            int rCount = 0;
+            DirectoryInfo richInfo = new DirectoryInfo(System.IO.Path.Combine(GetAppPakcageFolder(), "RichMedia"));
+            if (richInfo.Exists)
+            {
+                var dirs = richInfo.GetDirectories();
+                rCount = dirs.Count(d => !d.Name.Contains("-image"));
+            }
+            if (rCount > 0)
+            {
+                MyRichMedia.Text = "已导入富媒体" + rCount;
+            }
+
+            DirectoryInfo info = new DirectoryInfo(exePath + "富媒体");
+            if (!info.Exists)
+            {
+                this.AddRichMedia.IsChecked = false;
+                this.AddRichMedia.IsEnabled = false;
+            }
+            else if (rCount == 0)
+            {
+                this.AddRichMedia.IsChecked = true;
+            }
+            else if (rCount > 0)
+            {
+                this.AddRichMedia.IsChecked = false;
+            }
         }
 
         /// <summary>
