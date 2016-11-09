@@ -56,6 +56,8 @@ namespace UwpDesktopInstaller
 
         private void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
+
+
             //await Task.Delay(100);
             CheckLocalVersion();
             //button_Click(null, null);
@@ -510,99 +512,95 @@ namespace UwpDesktopInstaller
             }
 
             await Task.Run(async () =>
-           {
-               DirectoryInfo dInfo = new DirectoryInfo(exePath);
-               List<FileInfo> allAppxs = new List<FileInfo>();
-               allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
-               //allAppxs.AddRange(dInfo.GetFiles("*.Appx"));
-               allAppxs = allAppxs.OrderBy(f => f.Name).ToList();
-               if (allAppxs.Count > 0)
-               {
-                   using (Runspace runspace = RunspaceFactory.CreateRunspace())
-                   {
-                       runspace.Open();
-                       PowerShell ps = PowerShell.Create();
-                       ps.Runspace = runspace;
-                       var result = ps.AddCommand("add-appxpackage").AddParameter("Path", allAppxs.Last().FullName).AddParameter("ForceApplicationShutdown").Invoke();
-                       ps.Commands.Clear();
+            {
+                var appFile = GetMaxVerFile();
+                if (appFile.Item1 != null)
+                {
+                    using (Runspace runspace = RunspaceFactory.CreateRunspace())
+                    {
+                        runspace.Open();
+                        PowerShell ps = PowerShell.Create();
+                        ps.Runspace = runspace;
+                        var result = ps.AddCommand("add-appxpackage").AddParameter("Path", appFile.Item1.FullName).AddParameter("ForceApplicationShutdown").Invoke();
+                        ps.Commands.Clear();
 
-                       result = ps.AddCommand("get-appxpackage").AddParameter("Name", AppId).Invoke();
-                       if (result.Count > 0)
-                       {
-                           Dispatcher.Invoke(() =>
-                           {
-                               CheckLocalVersion();
-                               LogBlock.Text = "应用安装完成";
-                           });
+                        result = ps.AddCommand("get-appxpackage").AddParameter("Name", AppId).Invoke();
+                        if (result.Count > 0)
+                        {
+                            Dispatcher.Invoke(() =>
+                            {
+                                CheckLocalVersion();
+                                LogBlock.Text = "应用安装完成";
+                            });
 
-                           if (needRichMedia)
-                           {
-                               //导入富媒体
-                               string appdatafolder = GetAppPakcageFolder();
-                               //await Task.Run(() =>
-                               //{
-                               //    ZipHelper.UnZip("富媒体.zip", appdatafolder, (file) =>
-                               //    {
-                               //        Dispatcher.Invoke(() =>
-                               //        {
-                               //            this.LogBlock.Text = "解压" + file ?? "";
-                               //        });
-                               //    });
-                               //});
+                            if (needRichMedia)
+                            {
+                                //导入富媒体
+                                string appdatafolder = GetAppPakcageFolder();
+                                //await Task.Run(() =>
+                                //{
+                                //    ZipHelper.UnZip("富媒体.zip", appdatafolder, (file) =>
+                                //    {
+                                //        Dispatcher.Invoke(() =>
+                                //        {
+                                //            this.LogBlock.Text = "解压" + file ?? "";
+                                //        });
+                                //    });
+                                //});
 
-                               //await Task.Run(() =>
-                               //{
-                               //    FolderHelper.CopyDir(System.IO.Path.Combine(exePath, "富媒体"), appdatafolder, file =>
-                               //     {
-                               //         Dispatcher.Invoke(() =>
-                               //         {
-                               //             LogBlock.Text = "拷贝 " + file;
-                               //         });
-                               //     });
-                               //});
+                                //await Task.Run(() =>
+                                //{
+                                //    FolderHelper.CopyDir(System.IO.Path.Combine(exePath, "富媒体"), appdatafolder, file =>
+                                //     {
+                                //         Dispatcher.Invoke(() =>
+                                //         {
+                                //             LogBlock.Text = "拷贝 " + file;
+                                //         });
+                                //     });
+                                //});
 
-                               await Task.Run(() =>
+                                await Task.Run(() =>
+                                 {
+                                     DirectoryInfo rInfo = new DirectoryInfo(exePath + "富媒体");
+                                     foreach (var r in rInfo.GetFiles())
+                                     {
+                                         Dispatcher.Invoke(() =>
+                                         {
+                                             LogBlock.Text = "解压 " + r.FullName;
+                                         });
+                                         if (r.Extension.Equals(".zip"))
+                                         {
+                                             DirectoryInfo unZipFolder = new DirectoryInfo(System.IO.Path.Combine(appdatafolder, "RichMedia", r.Name.Replace(".zip", "")));
+                                             if (unZipFolder.Exists)
+                                             {
+                                                 unZipFolder.Delete(true);
+                                             }
+                                             System.IO.Compression.ZipFile.ExtractToDirectory(r.FullName, unZipFolder.FullName);
+                                         }
+                                         else if (r.Extension.Equals(".db"))
+                                         {
+                                             System.IO.File.Copy(r.FullName, System.IO.Path.Combine(appdatafolder, r.Name), true);
+                                         }
+                                     }
+                                 });
+                                Dispatcher.Invoke(() =>
                                {
-                                   DirectoryInfo rInfo = new DirectoryInfo(exePath + "富媒体");
-                                   foreach (var r in rInfo.GetFiles())
-                                   {
-                                       Dispatcher.Invoke(() =>
-                                       {
-                                           LogBlock.Text = "解压 " + r.FullName;
-                                       });
-                                       if (r.Extension.Equals(".zip"))
-                                       {
-                                           DirectoryInfo unZipFolder = new DirectoryInfo(System.IO.Path.Combine(appdatafolder, "RichMedia", r.Name.Replace(".zip", "")));
-                                           if (unZipFolder.Exists)
-                                           {
-                                               unZipFolder.Delete(true);
-                                           }
-                                           System.IO.Compression.ZipFile.ExtractToDirectory(r.FullName, unZipFolder.FullName);
-                                       }
-                                       else if (r.Extension.Equals(".db"))
-                                       {
-                                           System.IO.File.Copy(r.FullName, System.IO.Path.Combine(appdatafolder, r.Name), true);
-                                       }
-                                   }
+                                   LogBlock.Text = "富媒体已导入";
                                });
-                               Dispatcher.Invoke(() =>
-                              {
-                                  LogBlock.Text = "富媒体已导入";
-                              });
-                           }
-                           MessageBox.Show("部署完成!");
-                       }
-                       else
-                       {
-                           MessageBox.Show("未知错误，请联系开发人员");
-                       }
-                   }
-               }
-               else
-               {
-                   MessageBox.Show("找不到本地安装包");
-               }
-           });
+                            }
+                            MessageBox.Show("部署完成!");
+                        }
+                        else
+                        {
+                            MessageBox.Show("未知错误，请联系开发人员");
+                        }
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("找不到本地安装包");
+                }
+            });
         }
 
         /// <summary>
@@ -631,32 +629,33 @@ namespace UwpDesktopInstaller
                         try
                         {
                             var jOejct = JObject.Parse(res);
-                            var newVersion = jOejct.GetValue("newVersion").ToString();
+                            var sVerString = jOejct.GetValue("newVersion").ToString();
                             NewAppUrl = jOejct.GetValue("url").ToString();
 
-                            string loclVersion = "";
-                            var result = ps.AddCommand("Get-AppxPackage").AddParameter("Name", AppId).Invoke();
-                            ps.Commands.Clear();
-                            if (result.Count > 0)
-                            {
-                                var baseObj = (result.First() as PSObject)?.BaseObject;
-                                if (baseObj != null)
-                                {
-                                    loclVersion = baseObj.GetType().GetProperty("Version")?.GetValue(baseObj)?.ToString();
-                                }
-                            }
+                            //string loclVersion = "";
+                            //var result = ps.AddCommand("Get-AppxPackage").AddParameter("Name", AppId).Invoke();
+                            //ps.Commands.Clear();
+                            //if (result.Count > 0)
+                            //{
+                            //    var baseObj = (result.First() as PSObject)?.BaseObject;
+                            //    if (baseObj != null)
+                            //    {
+                            //        loclVersion = baseObj.GetType().GetProperty("Version")?.GetValue(baseObj)?.ToString();
+                            //    }
+                            //}
 
-                            Version n;
-                            if (Version.TryParse(newVersion, out n))
+                            Version sVersion;
+                            Version lVerison = GetMaxVerFile().Item2;
+                            if (Version.TryParse(sVerString, out sVersion))
                             {
-                                DirectoryInfo dInfo = new DirectoryInfo(exePath);
-                                List<FileInfo> allAppxs = new List<FileInfo>();
-                                allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
-                                allAppxs = allAppxs.OrderBy(f => f.Name).ToList();
-                                loclVersion = allAppxs.LastOrDefault()?.Name.Replace(".appxbundle", "");
-
-                                if (string.Compare(newVersion, loclVersion, true) > 0)
+                                if (lVerison == null || sVersion > lVerison)
                                 {
+                                    DirectoryInfo tempDir = new DirectoryInfo(exePath + "temp");
+                                    if (!tempDir.Exists)
+                                    {
+                                        tempDir.Create();
+                                    }
+                                    string tempFileName = "temp\\" + Guid.NewGuid().ToString();
                                     this.CheckUpdate.Content = "更新中...";
                                     WebClient client = new WebClient();
                                     client.DownloadProgressChanged += (obj, arg) =>
@@ -669,14 +668,19 @@ namespace UwpDesktopInstaller
                                     };
                                     client.DownloadFileCompleted += (obj, arg) =>
                                     {
-                                        this.CheckUpdate.Content = "离线包更新完成 V" + newVersion;
-                                        this.CheckUpdate.IsEnabled = true;
+                                        if (arg.Cancelled == false && arg.Error == null)
+                                        {
+                                            this.CheckUpdate.Content = "离线包更新完成 V" + sVerString;
+                                            this.CheckUpdate.IsEnabled = true;
+                                            File.Copy(exePath + tempFileName, exePath + sVersion + ".appxbundle");
+                                            tempDir.Delete(true);
+                                        }
                                     };
-                                    client.DownloadFileAsync(new Uri(NewAppUrl), exePath + newVersion + ".appxbundle");
+                                    client.DownloadFileAsync(new Uri(NewAppUrl), exePath + tempFileName);
                                 }
                                 else
                                 {
-                                    this.CheckUpdate.Content = "离线包已经是最新 V" + loclVersion;
+                                    this.CheckUpdate.Content = "离线包已经是最新 V" + lVerison;
                                     this.CheckUpdate.IsEnabled = true;
                                 }
                             }
@@ -700,6 +704,37 @@ namespace UwpDesktopInstaller
 
                 }
             });
+        }
+
+        private Tuple<FileInfo, Version> GetMaxVerFile()
+        {
+            DirectoryInfo dInfo = new DirectoryInfo(exePath);
+            List<FileInfo> allAppxs = new List<FileInfo>();
+            allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
+            allAppxs.AddRange(dInfo.GetFiles("*.Appx"));
+
+            FileInfo maxVerFile = null;
+            Version maxVer = null;
+            foreach (var app in allAppxs)
+            {
+                string ver = app.Name.Split('_').FirstOrDefault(s => s.Contains("."))?.Replace(".appxbundle", "").Replace(".appx", "");
+                Version localVer;
+                if (Version.TryParse(ver, out localVer))
+                {
+                    if (maxVer == null || localVer > maxVer)
+                    {
+                        maxVerFile = app;
+                        maxVer = localVer;
+                    }
+                }
+            }
+
+            return new Tuple<FileInfo, Version>(maxVerFile, maxVer);
+        }
+
+        private void CheckUpdateSelfInstaller()
+        {
+
         }
 
         private static string GetSettings(string key)
@@ -736,6 +771,25 @@ namespace UwpDesktopInstaller
             IsUserMode = false;
             this.SwitchMode.Content = "装机模式";
             SetSettings("Mode", "DIY");
+        }
+
+        private void Clean_Click(object sender, RoutedEventArgs e)
+        {
+            DirectoryInfo dInfo = new DirectoryInfo(exePath);
+            List<FileInfo> allAppxs = new List<FileInfo>();
+            allAppxs.AddRange(dInfo.GetFiles("*.appxbundle"));
+            allAppxs.AddRange(dInfo.GetFiles("*.appx"));
+
+            foreach (var app in allAppxs)
+            {
+                app.Delete();
+            }
+
+            DirectoryInfo tempDir = new DirectoryInfo(exePath + "temp");
+            if (tempDir.Exists)
+            {
+                tempDir.Delete(true);
+            }
         }
     }
 }
