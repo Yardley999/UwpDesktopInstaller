@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Configuration;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -24,24 +25,32 @@ using System.Xml.Linq;
 
 namespace UwpDesktopInstaller
 {
-
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
     public partial class MainWindow : Window
     {
-        readonly string AppId = "F0545211.456363CE32596";//2223d805-63e2-4ded-87a7-ee0b94c17a56
-        readonly string PackageName = "F0545211.456363CE32596_g77a4fvspwzqa";
+        readonly string Mode = GetSettings("Mode");
+        readonly string AppId = GetSettings("AppId");
+        readonly string PackageName = GetSettings("PackageName");
+        readonly string HostUrl = GetSettings("HostUrl");
 
-        private string AppFullName = "F0545211.456363CE32596_g77a4fvspwzqa";
+        bool IsUserMode { get; set; }
+
+        private string AppFullName = string.Empty;
         private string AppLocation = string.Empty;
+        private string AppVersion = string.Empty;
+
         private string NewAppUrl = string.Empty;
 
         string exePath = AppDomain.CurrentDomain.BaseDirectory;
 
         public MainWindow()
         {
+            AppFullName = PackageName;
+
             InitializeComponent();
+
             this.Loaded += MainWindow_Loaded;
         }
 
@@ -50,7 +59,14 @@ namespace UwpDesktopInstaller
             //await Task.Delay(100);
             CheckLocalVersion();
             //button_Click(null, null);
-
+            if (Mode == "USER")
+            {
+                this.SwitchMode.IsChecked = true;
+            }
+            else
+            {
+                this.SwitchMode.IsChecked = false;
+            }
         }
 
         private void CheckLocalVersion()
@@ -67,16 +83,12 @@ namespace UwpDesktopInstaller
                             var baseObj = (result.First() as PSObject)?.BaseObject;
                             if (baseObj != null)
                             {
-                                string fullName = baseObj.GetType().GetProperty("PackageFullName")?.GetValue(baseObj)?.ToString();
-                                if (!string.IsNullOrEmpty(fullName))
-                                {
-                                    AppFullName = fullName;
-                                }
+                                AppFullName = baseObj.GetType().GetProperty("PackageFullName")?.GetValue(baseObj)?.ToString();
+                                AppVersion = baseObj.GetType().GetProperty("Version")?.GetValue(baseObj)?.ToString();
 
-                                string version = baseObj.GetType().GetProperty("Version")?.GetValue(baseObj)?.ToString();
-                                if (!string.IsNullOrEmpty(version))
+                                if (!string.IsNullOrEmpty(AppVersion))
                                 {
-                                    this.VersionBlock.Text = "v" + version;
+                                    this.VersionBlock.Text = "v" + AppVersion;
                                 }
 
                                 var package = baseObj?.GetType().GetField("package", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(baseObj);
@@ -593,6 +605,11 @@ namespace UwpDesktopInstaller
            });
         }
 
+        /// <summary>
+        /// 检查更新
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void Update_Click(object sender, RoutedEventArgs e)
         {
             this.CheckUpdate.IsEnabled = false;
@@ -606,9 +623,8 @@ namespace UwpDesktopInstaller
             {
                 try
                 {
-                    //var res = ps.AddCommand("Invoke-WebRequest").AddParameter("Uri", "http://hu.youstandby.me/appVersion.json").Invoke();
                     WebClient client1 = new WebClient();
-                    var res = client1.DownloadString("http://ufs-mc.chinacloudapp.cn/images/project/unilever/appVersion.json?" + Guid.NewGuid().ToByteArray());
+                    var res = client1.DownloadString(HostUrl + "?" + Guid.NewGuid().ToString());
                     ps.Commands.Clear();
                     if (!string.IsNullOrEmpty(res))
                     {
@@ -686,10 +702,41 @@ namespace UwpDesktopInstaller
             });
         }
 
-        //private static string GetSettings(string key)
-        //{
-        //    return ConfigurationManager.AppSettings.Get(key);
-        //}
+        private static string GetSettings(string key)
+        {
+            return ConfigurationManager.AppSettings.Get(key);
+        }
+
+        private static void SetSettings(string key, string value)
+        {
+            Configuration cfa = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
+            cfa.AppSettings.Settings[key].Value = value;
+            cfa.Save();
+        }
+
+        /// <summary>
+        /// 用户模式
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void ModeSwitchChecked(object sender, RoutedEventArgs e)
+        {
+            IsUserMode = true;
+            this.SwitchMode.Content = "用户模式";
+            SetSettings("Mode", "USER");
+        }
+
+        /// <summary>
+        /// 装机模式
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void ModeSwicthUnChecked(object sender, RoutedEventArgs e)
+        {
+            IsUserMode = false;
+            this.SwitchMode.Content = "装机模式";
+            SetSettings("Mode", "DIY");
+        }
     }
 }
 //X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);

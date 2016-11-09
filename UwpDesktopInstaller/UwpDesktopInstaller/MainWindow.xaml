@@ -7,8 +7,9 @@
         mc:Ignorable="d"
         Background="#eee"
         WindowStartupLocation="CenterScreen"
-        Title="联合利华Mobile-Chief桌面安装器[测试版]" Height="600" Width="800">
+        Title="联合利华〖移动厨师〗桌面安装器2.0" Height="600" Width="800">
     <Grid>
+        <ToggleButton x:Name="SwitchMode" Content="装机模式" Checked="ModeSwitchChecked"  Unchecked="ModeSwicthUnChecked" Margin="0,20,0,0" FontSize="16" VerticalAlignment="Top" HorizontalAlignment="Right" />
         <Button x:Name="SuperInstall" Click="SuperInstall_Click" Content="安装" Width="300" Height="150" FontSize="50" />
         <Grid HorizontalAlignment="Stretch" Height="200" VerticalAlignment="Bottom">
             <StackPanel Orientation="Vertical">
