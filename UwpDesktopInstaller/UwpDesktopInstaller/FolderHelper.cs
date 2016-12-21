@@ -1,9 +1,5 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace UwpDesktopInstaller
 {
@@ -35,7 +31,11 @@ namespace UwpDesktopInstaller
                 CopyDir(fromDirName, toDirName, invokeFile);
             }
         }
-
+        /// <summary>
+        /// A2
+        /// </summary>
+        /// <param name="fromDir"></param>
+        /// <param name="toDir"></param>
         public static void MoveDir(string fromDir, string toDir)
         {
             if (!Directory.Exists(fromDir))
