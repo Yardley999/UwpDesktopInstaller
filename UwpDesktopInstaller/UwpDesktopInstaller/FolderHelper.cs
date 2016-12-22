@@ -31,7 +31,11 @@ namespace UwpDesktopInstaller
                 CopyDir(fromDirName, toDirName, invokeFile);
             }
         }
-
+        /// <summary>
+        /// 1
+        /// </summary>
+        /// <param name="fromDir"></param>
+        /// <param name="toDir"></param>
         public static void MoveDir(string fromDir, string toDir)
         {
             if (!Directory.Exists(fromDir))
