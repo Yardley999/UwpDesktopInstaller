@@ -32,7 +32,7 @@ namespace UwpDesktopInstaller
             }
         }
         /// <summary>
-        /// A1
+        /// A2
         /// </summary>
         /// <param name="fromDir"></param>
         /// <param name="toDir"></param>
